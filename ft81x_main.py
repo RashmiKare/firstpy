@@ -27,7 +27,7 @@ if __name__ == '__main__':
     
     ft81x_api.ft81x_dl_write(ft4222,'CLEAR_COLOR_RGB',255,255,255)
     ft81x_api.ft81x_dl_write(ft4222,'CLEAR',1,1,1)
-    ft81x_api.ft81x_dl_write(ft4222,'COLOR_RGB',0,0,255)
+    ft81x_api.ft81x_dl_write(ft4222,'COLOR_RGB',128,128,0)
     
     '''
     ft81x_dl_write(ft4222,'POINT_SIZE',16)
@@ -191,10 +191,11 @@ if __name__ == '__main__':
     ft81x_api.ft81x_dl_write(ft4222,'DISPLAY')
     ft81x_api.ft81x_reg_write(ft4222,ft81x_def.REG_DLSWAP,ft81x_def.DLSWAP_FRAME)
     
-
-    ft81x_api.ft81x_copro_cmd_write(ft4222,'CMD_BUTTON',10,10,100,200,31,0,'test!')
-    ft81x_api.ft81x_copro_cmd_write(ft4222,'CMD_SWAP')
-    ft81x_api.ft81x_copro_cmd_write(ft4222,'DISPLAY')
+    ft81x_api.ft81x_copro_cmd_bufwrite(ft4222,'CMD_DLSTART')
+    ft81x_api.ft81x_copro_cmd_bufwrite(ft4222,'CMD_BUTTON',10,10,100,200,31,0,'test!')
+    ft81x_api.ft81x_copro_cmd_bufwrite(ft4222,'DISPLAY')
+    ft81x_api.ft81x_copro_cmd_bufwrite(ft4222,'CMD_SWAP')    
+    ft81x_api.ft81x_copro_cmd_bufwrite(ft4222,'UPDATE_RAM_CMD')
     
     #ft81x_reg_write(ft4222,REG_HCYCLE,0x3A0);
     # wr_src = ""

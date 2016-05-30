@@ -56,51 +56,14 @@ def ft81x_readword(ch_instance,addr):
     return response_4byte
 
 # Write RAM_DL with display list command
+
+def ft81x_dl_command_exist(dl_cmd):
+    existance = dl_cmd in ft81x_def.DL_COMMAND_LIST   
+    return existance
+
 def ft81x_construct_dl_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0):
-    '''
-    ft81x_construct_dl_command(...)
-    ft81x_construct_dl_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0)
-    param1 : display list command
-    param2 - param5 : command parameters for the display list command "param1"
-             If the display list command has fewer params than 4, the prior parameters are considered
-    '''
-    command_list = (\
-                            # DL drawing actions \
-                            'BEGIN',\
-                            'END',\
-                            'VERTEX_FORMAT',\
-                            'VERTEX2II',\
-                            'VERTEX2F',\
-                            # DL commands to change execution flow \
-                            'DISPLAY',\
-                            # DL Commands to set graphics state \
-                            'ALPHA_FUNC',\
-                            'CLEAR',\
-                            'CLEAR COLOR A',\
-                            'CLEAR_COLOR_RGB',\
-                            'COLOR_RGB',\
-                            'COLOR_A',\
-                            'LINE_WIDTH',\
-                            'POINT_SIZE', \
-                            'BITMAP_HANDLE',\
-                            'BITMAP_LAYOUT',\
-                            'BITMAP_LAYOUT_H',\
-                            'BITMAP_SIZE',\
-                            'BITMAP_SIZE_H',\
-                            'BITMAP_SOURCE',\
-                            'BITMAP_TRANSFORM_A',\
-                            'BITMAP_TRANSFORM_B',\
-                            'BITMAP_TRANSFORM_C',\
-                            'BITMAP_TRANSFORM_D',\
-                            'BITMAP_TRANSFORM_E',\
-                            'BITMAP_TRANSFORM_F',\
-                            'CELL',\
-                            'BLEND_FUNC',\
-                            'CLEAR_STENCIL',\
-                        )
-    existance = param1 in command_list   
-    if existance == False:
-        raise IOError("Invalid DL command %s" % param1)
+    if ft81x_dl_command_exist(param1) == False:
+        raise IOError("Invalid DL command %s" % param1)  
     else:  
         if param1 == 'BEGIN':
             # start drawing a graphics primitive
@@ -235,18 +198,15 @@ def ft81x_construct_fix_value_string(val,fix):
     val_string = ''.join( chr(e) for e in val_list)
     return val_string   
 
+def ft81x_copro_command_exist(copro_cmd):
+    ex = copro_cmd in ft81x_def.COPRO_COMMAND_LIST
+    return ex    
+
 def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0 , param7 = 0, param8 = 0):                
-    command_list = (\
-                            # copro commands \
-                            'CMD_BUTTON',\
-                            'CMD_SWAP',\
-                            'DISPLAY',\
-                      )
-    ex = param1 in command_list   
-    if ex == False:
-        raise IOError("Invalid co-processor command %s" % param1)
+    if ft81x_copro_command_exist(param1) == False:       
+        raise IOError("Invalid co-processor command %s" % param1)          
     else:
-        print "param1",param1
+        #print "param1",param1
         if param1 == 'CMD_BUTTON':  
             # 0xffffff0d,x,y,w,h,font,options,string          
             print "called"
@@ -261,24 +221,55 @@ def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0
             cmd_str += param8                             
         elif param1 == 'CMD_SWAP':
             cmd_str = ft81x_construct_fix_value_string(0xFFFFFF01,4) 
-        elif param1 == 'DISPLAY':
-            cmd_str = ft81x_construct_fix_value_string(0x0,4) 
-
+        elif param1 == 'CMD_DLSTART':
+            cmd_str = ft81x_construct_fix_value_string(0xFFFFFF00,4) 
+ 
         prt_str = " ".join(hex(ord(ele)) for ele in cmd_str)
         print prt_str
         return cmd_str
 
-def ft81x_copro_cmd_write(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0, arg6 = 0, arg7 = 0):     
-    if not hasattr(ft81x_copro_cmd_write,"ram_cmd_ptr"):        
-        ft81x_copro_cmd_write.ram_cmd_ptr = ft81x_def.RAM_CMD  # RAM_CMD mem location         
-    size_ava = ft81x_ram_cmd_freespace(ch_instance)
-    print "size_ava",size_ava
-    cmd_str = ft81x_construct_copro_command(copro_cmd,arg1,arg2,arg3,arg4,arg5,arg6,arg7)
-    #print "cmd_str",cmd_str
-    if( size_ava and (size_ava >= len(cmd_str))):                        
-        ch_instance.wrstr(ft81x_copro_cmd_write.ram_cmd_ptr,cmd_str)            
-        ft81x_copro_cmd_write.ram_cmd_ptr += len(cmd_str)
-        ft81x_copro_cmd_write.ram_cmd_ptr = ((ft81x_copro_cmd_write.ram_cmd_ptr + 0x3) & ~0x3 ) # force word alignmenet 
+def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0, arg6 = 0, arg7 = 0):     
+    if not hasattr(ft81x_copro_cmd_bufwrite,"buf_ptr"):        
+        ft81x_copro_cmd_bufwrite.buf_ptr = 0 
+    if not hasattr(ft81x_copro_cmd_bufwrite,"buf"):
+        ft81x_copro_cmd_bufwrite.buf =  []  
+    if not hasattr(ft81x_copro_cmd_bufwrite,"wr_ram_cmd_ptr"):
+        ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr =  ft81x_def.RAM_CMD  
+
+    if copro_cmd == 'UPDATE_RAM_CMD':
+        # time to update RAM_CMD region        
+        print "Buffer content being updated to RAM_CMD -> ",ft81x_copro_cmd_bufwrite.buf
+        ch_instance.wrstr(ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr,"".join(ele for ele in ft81x_copro_cmd_bufwrite.buf))        
+        #ft81x_reg_write(ch_instance,ft81x_def.REG_CMD_WRITE,ft81x_construct_fix_value_string(ft81x_copro_cmd_bufwrite.buf_ptr,2))
+        ch_instance.wrstr(ft81x_def.REG_CMD_WRITE,ft81x_construct_fix_value_string(ft81x_copro_cmd_bufwrite.buf_ptr,2))
+        while(ft81x_ram_cmd_freespace(ch_instance) != 4092):
+            print 'waiting.....' 
+            continue
+        return
+    
+    if(ft81x_copro_cmd_bufwrite.buf_ptr > 4092):
+        print 'BUF full , time to update RAM_CMD'
+        return 
+    else :    
+        if ft81x_copro_command_exist(copro_cmd):        
+            cmd_str = ft81x_construct_copro_command(copro_cmd,arg1,arg2,arg3,arg4,arg5,arg6,arg7)
+        elif ft81x_dl_command_exist(copro_cmd):        
+            cmd_str = ft81x_construct_dl_command(copro_cmd,arg1,arg2,arg3,arg4)
+
+        #print "cmd_str",cmd_str
+        cmd_len = len(cmd_str)       
+        if (cmd_len):                   
+            ft81x_copro_cmd_bufwrite.buf += list(cmd_str)
+            pad_len = padding = 0
+            if cmd_len & 0x3 != 0 :
+                # not multiple of 4, padding needed
+                padding = 0x3 - (cmd_len & 0x3) + 1                            
+                pad_len = padding
+                while padding :
+                    ft81x_copro_cmd_bufwrite.buf.append(chr(0))
+                    padding -= 1            
+            ft81x_copro_cmd_bufwrite.buf_ptr = ft81x_copro_cmd_bufwrite.buf_ptr + cmd_len + pad_len            
+
 
 def ft81x_init(ch_instance):     
     ft81x_reg_write(ch_instance,ft81x_def.REG_SPI_WIDTH,2)   

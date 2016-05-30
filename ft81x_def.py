@@ -32,6 +32,48 @@ RAM_G               = 0x000000
 #constant definitions
 DLSWAP_FRAME        = 0x2
 
+DL_COMMAND_LIST = (\
+                        # DL drawing actions \
+                        'BEGIN',\
+                        'END',\
+                        'VERTEX_FORMAT',\
+                        'VERTEX2II',\
+                        'VERTEX2F',\
+                        # DL commands to change execution flow \
+                        'DISPLAY',\
+                        # DL Commands to set graphics state \
+                        'ALPHA_FUNC',\
+                        'CLEAR',\
+                        'CLEAR COLOR A',\
+                        'CLEAR_COLOR_RGB',\
+                        'COLOR_RGB',\
+                        'COLOR_A',\
+                        'LINE_WIDTH',\
+                        'POINT_SIZE', \
+                        'BITMAP_HANDLE',\
+                        'BITMAP_LAYOUT',\
+                        'BITMAP_LAYOUT_H',\
+                        'BITMAP_SIZE',\
+                        'BITMAP_SIZE_H',\
+                        'BITMAP_SOURCE',\
+                        'BITMAP_TRANSFORM_A',\
+                        'BITMAP_TRANSFORM_B',\
+                        'BITMAP_TRANSFORM_C',\
+                        'BITMAP_TRANSFORM_D',\
+                        'BITMAP_TRANSFORM_E',\
+                        'BITMAP_TRANSFORM_F',\
+                        'CELL',\
+                        'BLEND_FUNC',\
+                        'CLEAR_STENCIL',\
+                    )
+
+COPRO_COMMAND_LIST = (\
+                            # copro commands \
+                            'CMD_BUTTON',\
+                            'CMD_SWAP',\
+                            'CMD_DLSTART',\
+                     )
+
 picture = [53,173,53,173,86,173,86,181,118,181,118,181,118,181,118,181,183,189,183,189,216,189,216,197,248,197,25,206,57,206,57,206,57,214,89,214,89,214,89,214,121,214,121,214,122,222,122,222,89,214,89,214,121,214,121,214,121,214,153,222,153,222,153,222,
 121,214,121,214,153,222,153,222,154,222,186,222,186,222,186,222,218,230,218,230,218,230,218,230,218,230,218,230,218,230,218,230,251,230,251,230,251,230,251,230,251,230,251,230,251,230,251,230,27,239,251,230,251,230,251,230,251,230,251,230,251,230,251,230,
 251,230,251,230,251,230,251,230,251,230,28,231,28,231,28,231,28,231,28,239,28,239,28,239,28,239,28,239,28,239,60,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,28,239,
