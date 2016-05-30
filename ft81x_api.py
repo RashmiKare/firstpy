@@ -268,7 +268,6 @@ def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0
         print prt_str
         return cmd_str
 
-Needs change
 def ft81x_copro_cmd_write(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0, arg6 = 0, arg7 = 0):     
     if not hasattr(ft81x_copro_cmd_write,"ram_cmd_ptr"):        
         ft81x_copro_cmd_write.ram_cmd_ptr = ft81x_def.RAM_CMD  # RAM_CMD mem location         
