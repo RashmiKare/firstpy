@@ -8,14 +8,97 @@ import ft81x_def
 HW_444=1
 #HW_444=0
 
-# Write APIs
+###################### common APIs ####################
+
+def ft81x_write(ch_instance,addr,buf):
+    '''
+    Writes contents of "buf" which is string type to FT81x address "addr"
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Integer type
+        buf             - string
+
+    Return:
+        None
+    '''     
+    ch_instance.wrstr(addr,buf)
+
+
+def ft81x_read(ch_instance,addr,len):    
+    '''
+    Reads len bytes from addr
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Integer type
+        len             - Integer type
+
+    Return:
+        String
+    '''
+    return ch_instance.rdstr(addr,len)
+
+def ft81x_readbyte(ch_instance,addr):    
+    '''
+    Read 1 byte from addr
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Integer type
+
+    Return:
+        Integer
+    '''
+    response_str = ch_instance.rdstr(addr,1)   
+    response_byte = ord(response_str)
+    return response_byte
+
+
+def ft81x_readhalfword(ch_instance,addr): 
+    '''
+    Read 2 byte from addr
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Integer type
+
+    Return:
+        Integer
+    '''    
+    response_str = ch_instance.rdstr(addr,2)   
+    response_2byte = (ord(response_str[0]) & 0xFF) | ((ord(response_str[1]) & 0xFF) << 8) # [0] [1] = LSB MSB   
+    return response_2byte
+
+
+def ft81x_readword(ch_instance,addr):    
+    '''
+    Read 4 byte from addr
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Integer type
+
+    Return:
+        Integer
+    '''    
+    response_str = ch_instance.rdstr(addr,4)   
+    # [0] [1] [2] [3] = LSB .... MSB
+    response_4byte = (ord(response_str[0]) & 0xFF) | ((ord(response_str[1]) & 0xFF) << 8) | ((ord(response_str[2]) & 0xFF) << 16) | ((ord(response_str[3]) & 0xFF) << 24)
+    return response_4byte
+
+
 def ft81x_construct_value_string(val):
     '''
-    ft81x_construct_reg_value_format
-    ft81x_construct_reg_value_format(val)    
-    val : Integer value to be written to register
-    returns a string with byte 0 first
-    '''
+    Converts integer "val" to string that is acceptable by FT81x
+    i.e LSB of val at 0th index in string
+    
+    Args:
+        val     - Integer value
+        
+    Return:
+        string
+    '''    
     val_list = []
     while(val):
         val_list.append(val & 0xFF)
@@ -24,45 +107,125 @@ def ft81x_construct_value_string(val):
     val_string = ''.join( chr(e) for e in val_list)
     return val_string   
 
+def ft81x_construct_fix_value_string(val,fix): 
+    '''
+    Converts integer "val" to fixed lenth string that is acceptable by FT81x
+    Padded bytes are zeroes
+    i.e LSB of val at 0th index in string
+    
+    Args:
+        val     - Integer value
+        fix     - Size to fix in the return string
+        
+    Return:
+        string
+    '''       
+    val_list = []
+    while(val):        
+            val_list.append(val & 0xFF)
+            val = val >> 8            
+    #print "val_list",val_list,"len(val_list)",len(val_list)
+    if (len(val_list) != fix) :
+        fix -= len(val_list)
+        while(fix):
+            val_list.extend([0x00])     
+            fix -= 1        
+    val_string = ''.join( chr(e) for e in val_list)
+    return val_string   
+
+def ft81x_init(ch_instance):  
+    '''
+    Initializes FT81x
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"        
+
+    Return:
+        None
+    '''   
+    ft81x_reg_write(ch_instance,ft81x_def.REG_SPI_WIDTH,2)   
+    print "FT81x SPI set in QUAD mode with one dummy"    
+    ch_instance.switchmode(mode = 4)
+    print "FT422 communication switched to QUAD mode"    
+    
+    n = ft81x_readbyte(ch_instance,ft81x_def.REG_ID)
+    print "REG_ID = 0x%02x" %n
+    while (n != 0x7C):
+        n = ft81x_readbyte(ft4222,REG_ID)
+
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HCYCLE,0x3A0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HOFFSET,0x58)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC0,0x0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC1,0x30)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VCYCLE,0x20D)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VOFFSET,0x20)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC0,0x0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC1,0x3)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_SWIZZLE,0x0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_PCLK_POL,0x1)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HSIZE,0x320)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VSIZE,0x1E0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_CSPREAD,0x0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_DITHER,0x1)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX_DIR,0xFFFF)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX,0xFFFF)       
+    ft81x_dl_write(ch_instance,'CLEAR_COLOR_RGB',0,0,0)
+    ft81x_dl_write(ch_instance,'CLEAR',1,1,1)    
+    ft81x_dl_write(ch_instance,'DISPLAY')    
+    ft81x_reg_write(ch_instance,ft81x_def.REG_DLSWAP,ft81x_def.DLSWAP_FRAME)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_PCLK,2) 
+    print "FT81x initialized!"
+
+
+###################### APIs interacting with RAM_REG ####################
+
 def ft81x_reg_write(ch_instance,reg,val): 
+    '''
+    Writes "val" to register "reg"
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        addr            - Register address in integer type
+        buf             - Value in integer type
+
+    Return:
+        None
+    '''
     if (reg == ft81x_def.REG_DLSWAP):         
         ft81x_dl_write(0,'REG_DLSWAP',0,0,0,0)
     ch_instance.wrstr(reg,ft81x_construct_value_string(val))   
     #print "Writing register",reg,"with value",val
 
-def ft81x_write(ch_instance,addr,buf):
-    #buf : in as str    
-    ch_instance.wrstr(addr,buf)
+
+###################### APIs interacting with RAM_DL ####################
+
+def ft81x_is_dl_command(dl_cmd):
+    '''
+    Checks if dl_cmd is a valid DL command
     
-#Read APIs
-def ft81x_read(ch_instance,addr,len):    
-    return ch_instance.rdstr(addr,len)      
+    Args:        
+        dl_cmd         - integer value
 
-def ft81x_readbyte(ch_instance,addr):    
-    response_str = ch_instance.rdstr(addr,1)   
-    response_byte = ord(response_str)
-    return response_byte
-
-def ft81x_readhalfword(ch_instance,addr): 
-    # [0] [1] = LSB MSB   
-    response_str = ch_instance.rdstr(addr,2)   
-    response_2byte = (ord(response_str[0]) & 0xFF) | ((ord(response_str[1]) & 0xFF) << 8)
-    return response_2byte
-
-def ft81x_readword(ch_instance,addr):    
-    # [0] [1] [2] [3] = LSB .... MSB
-    response_str = ch_instance.rdstr(addr,4)   
-    response_4byte = (ord(response_str[0]) & 0xFF) | ((ord(response_str[1]) & 0xFF) << 8) | ((ord(response_str[2]) & 0xFF) << 16) | ((ord(response_str[3]) & 0xFF) << 24)
-    return response_4byte
-
-# Write RAM_DL with display list command
-
-def ft81x_dl_command_exist(dl_cmd):
+    Return:
+        True or False depending on valid or invalid DL command
+    '''
     existance = dl_cmd in ft81x_def.DL_COMMAND_LIST   
     return existance
 
+
 def ft81x_construct_dl_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0):
-    if ft81x_dl_command_exist(param1) == False:
+    '''
+    Constructs DL command with parameters in FT81x accetable format    
+    
+    Args:
+        param1                - DL command as string
+        param2 to param6      - parameters for the DL command specified in param1
+        
+    Return:
+        String of DL command with parameters in FT81x accetable format    
+        LSB of val of constructed command is located at 0th index in string    
+    '''    
+    if ft81x_is_dl_command(param1) == False:
         raise IOError("Invalid DL command %s" % param1)  
     else:  
         if param1 == 'BEGIN':
@@ -157,7 +320,18 @@ def ft81x_construct_dl_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, p
         #print "\n cmd:"," ".join(hex(ord(n)) for n in s)
         return s
 
-def ft81x_dl_write(ch_instance,dl_cmd,arg1 = 0,arg2 = 0,arg3 = 0,arg4 = 0,arg5 = 0):     
+
+def ft81x_dl_write(ch_instance,dl_cmd,arg1 = 0,arg2 = 0,arg3 = 0,arg4 = 0,arg5 = 0):    
+    '''
+    Writes RAM_DL
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        dl_cmd          - Display List command in integer value
+        arg1 to arg5    - Parameters required for dl_cmd in integer value
+    Return:
+        None
+    ''' 
     if not hasattr(ft81x_dl_write,"ram_dl_ptr"):        
         ft81x_dl_write.ram_dl_ptr = ft81x_def.RAM_DL  # RAM_DL mem location  
     if (dl_cmd == 'REG_DLSWAP'):
@@ -169,41 +343,58 @@ def ft81x_dl_write(ch_instance,dl_cmd,arg1 = 0,arg2 = 0,arg3 = 0,arg4 = 0,arg5 =
             print "Co-processor engine is curretly functional"
         curr_dl_offset = ft81x_readhalfword(ch_instance,ft81x_def.REG_CMD_DL)          
         ft81x_dl_write.ram_dl_ptr += curr_dl_offset 
-        if(ft81x_dl_write.ram_dl_ptr == (ft81x_def.RAM_DL + 0x2000)): # RAM_DL is 8K
-            print "!!!RAM_DL full!!!",ft81x_dl_write.ram_dl_ptr
+        if(ft81x_dl_write.ram_dl_ptr >= (ft81x_def.RAM_DL + 0x2000)): # RAM_DL is 8K
+            print "Write failed !!!RAM_DL full!!! ",ft81x_dl_write.ram_dl_ptr
             return
         ch_instance.wrstr(ft81x_dl_write.ram_dl_ptr,ft81x_construct_dl_command(dl_cmd,arg1,arg2,arg3,arg4))
         #print "DL written location = ",hex(ft81x_dl_write.ram_dl_ptr)
         ft81x_dl_write.ram_dl_ptr += 4 # next word aligned location for DL command
-        ft81x_dl_write.ram_dl_ptr = ((ft81x_dl_write.ram_dl_ptr + 0x3) & ~0x3 ) # force word alignmenet        
+        ft81x_dl_write.ram_dl_ptr = ((ft81x_dl_write.ram_dl_ptr + 0x3) & ~0x3 ) # force word alignmenet     
 
 
-# Write co-processor command to RAM_CMD
+###################### APIs interacting with RAM_CMD ####################
+
 def ft81x_ram_cmd_freespace(ch_instance):
+    '''
+    Returns available space in RAM_CMD
+    
+    Args:
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        
+    Return:
+        Integer value
+    ''' 
     fullness = (ft81x_readhalfword(ch_instance,ft81x_def.REG_CMD_WRITE) - ft81x_readhalfword(ch_instance,ft81x_def.REG_CMD_READ)) % 4096
     freespace = 4096 - 4 - fullness    
     return freespace
 
-def ft81x_construct_fix_value_string(val,fix):    
-    val_list = []
-    while(val):        
-            val_list.append(val & 0xFF)
-            val = val >> 8            
-    #print "val_list",val_list,"len(val_list)",len(val_list)
-    if (len(val_list) != fix) :
-        fix -= len(val_list)
-        while(fix):
-            val_list.extend([0x00])     
-            fix -= 1        
-    val_string = ''.join( chr(e) for e in val_list)
-    return val_string   
 
-def ft81x_copro_command_exist(copro_cmd):
+def ft81x_is_copro_command(copro_cmd):
+    '''
+    Checks if copro_cmd is a valid coprocessor command
+    
+    Args:        
+        copro_cmd         - integer value
+
+    Return:
+        True or False depending on valid or invalid coprocessor command
+    '''
     ex = copro_cmd in ft81x_def.COPRO_COMMAND_LIST
     return ex    
 
 def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0 , param7 = 0, param8 = 0):                
-    if ft81x_copro_command_exist(param1) == False:       
+    '''
+    Constructs coprocessor command with parameters in FT81x accetable format    
+    
+    Args:
+        param1                - coprocessor command as string
+        param2 to param6      - parameters in integer type for the coprocessor command specified in param1
+        
+    Return:
+        String of coprocessor command with parameters in FT81x accetable format    
+        LSB of val of constructed command is located at 0th index in string    
+    '''
+    if ft81x_is_copro_command(param1) == False:       
         raise IOError("Invalid co-processor command %s" % param1)          
     else:
         #print "param1",param1
@@ -229,6 +420,15 @@ def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0
         return cmd_str
 
 def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0, arg6 = 0, arg7 = 0):     
+    '''
+    
+    
+    Args:
+        
+        
+    Return:
+        None
+    '''
     if not hasattr(ft81x_copro_cmd_bufwrite,"buf_ptr"):        
         ft81x_copro_cmd_bufwrite.buf_ptr = 0 
     if not hasattr(ft81x_copro_cmd_bufwrite,"buf"):
@@ -245,15 +445,14 @@ def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0,
         while(ft81x_ram_cmd_freespace(ch_instance) != 4092):
             print 'waiting.....' 
             continue
-        return
-    
+        return    
     if(ft81x_copro_cmd_bufwrite.buf_ptr > 4092):
         print 'BUF full , time to update RAM_CMD'
         return 
     else :    
-        if ft81x_copro_command_exist(copro_cmd):        
+        if ft81x_is_copro_command(copro_cmd):        
             cmd_str = ft81x_construct_copro_command(copro_cmd,arg1,arg2,arg3,arg4,arg5,arg6,arg7)
-        elif ft81x_dl_command_exist(copro_cmd):        
+        elif ft81x_is_dl_command(copro_cmd):        
             cmd_str = ft81x_construct_dl_command(copro_cmd,arg1,arg2,arg3,arg4)
 
         #print "cmd_str",cmd_str
@@ -269,41 +468,6 @@ def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0,
                     ft81x_copro_cmd_bufwrite.buf.append(chr(0))
                     padding -= 1            
             ft81x_copro_cmd_bufwrite.buf_ptr = ft81x_copro_cmd_bufwrite.buf_ptr + cmd_len + pad_len            
-
-
-def ft81x_init(ch_instance):     
-    ft81x_reg_write(ch_instance,ft81x_def.REG_SPI_WIDTH,2)   
-    print "FT81x SPI set in QUAD mode with one dummy"    
-    ch_instance.switchmode(mode = 4)
-    print "FT422 communication switched to QUAD mode"    
-    
-    n = ft81x_readbyte(ch_instance,ft81x_def.REG_ID)
-    print "REG_ID = 0x%02x" %n
-    while (n != 0x7C):
-        n = ft81x_readbyte(ft4222,REG_ID)
-
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HCYCLE,0x3A0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HOFFSET,0x58)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC0,0x0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC1,0x30)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VCYCLE,0x20D)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VOFFSET,0x20)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC0,0x0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC1,0x3)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_SWIZZLE,0x0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_PCLK_POL,0x1)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HSIZE,0x320)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VSIZE,0x1E0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_CSPREAD,0x0)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_DITHER,0x1)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX_DIR,0xFFFF)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX,0xFFFF)       
-    ft81x_dl_write(ch_instance,'CLEAR_COLOR_RGB',0,0,0)
-    ft81x_dl_write(ch_instance,'CLEAR',1,1,1)    
-    ft81x_dl_write(ch_instance,'DISPLAY')    
-    ft81x_reg_write(ch_instance,ft81x_def.REG_DLSWAP,ft81x_def.DLSWAP_FRAME)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_PCLK,2) 
-    print "FT81x initialized!"
 
 
 def check(f):
