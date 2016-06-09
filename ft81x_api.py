@@ -153,22 +153,22 @@ def ft81x_init(ch_instance):
     while (n != 0x7C):
         n = ft81x_readbyte(ft4222,REG_ID)
 
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HCYCLE,0x3A0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HCYCLE,0x3A0,2)
     ft81x_reg_write(ch_instance,ft81x_def.REG_HOFFSET,0x58)
     ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC0,0x0)
     ft81x_reg_write(ch_instance,ft81x_def.REG_HSYNC1,0x30)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VCYCLE,0x20D)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VCYCLE,0x20D,2)
     ft81x_reg_write(ch_instance,ft81x_def.REG_VOFFSET,0x20)
     ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC0,0x0)
     ft81x_reg_write(ch_instance,ft81x_def.REG_VSYNC1,0x3)
     ft81x_reg_write(ch_instance,ft81x_def.REG_SWIZZLE,0x0)
     ft81x_reg_write(ch_instance,ft81x_def.REG_PCLK_POL,0x1)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_HSIZE,0x320)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_VSIZE,0x1E0)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_HSIZE,0x320,2)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_VSIZE,0x1E0,2)
     ft81x_reg_write(ch_instance,ft81x_def.REG_CSPREAD,0x0)
     ft81x_reg_write(ch_instance,ft81x_def.REG_DITHER,0x1)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX_DIR,0xFFFF)
-    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX,0xFFFF)       
+    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX_DIR,0xFFFF,2)
+    ft81x_reg_write(ch_instance,ft81x_def.REG_GPIOX,0xFFFF,2)       
     ft81x_dl_write(ch_instance,'CLEAR_COLOR_RGB',0,0,0)
     ft81x_dl_write(ch_instance,'CLEAR',1,1,1)    
     ft81x_dl_write(ch_instance,'DISPLAY')    
@@ -179,21 +179,22 @@ def ft81x_init(ch_instance):
 
 ###################### APIs interacting with RAM_REG ####################
 
-def ft81x_reg_write(ch_instance,reg,val): 
+def ft81x_reg_write(ch_instance,reg,val,val_width_in_bytes = 1): 
     '''
     Writes "val" to register "reg"
     
     Args:
-        ch_instance     - SPI interface Handler obtained through "class Channel"
-        addr            - Register address in integer type
-        buf             - Value in integer type
+        ch_instance         - SPI interface Handler obtained through "class Channel"
+        reg                 - Register address in integer type
+        val                 - Value in integer type
+        val_width_in_bytes  - Value width in bytes integer type
 
     Return:
         None
     '''
     if (reg == ft81x_def.REG_DLSWAP):         
         ft81x_dl_write(0,'REG_DLSWAP',0,0,0,0)
-    ch_instance.wrstr(reg,ft81x_construct_value_string(val))   
+    ch_instance.wrstr(reg,ft81x_construct_fix_value_string(val,val_width_in_bytes))   
     #print "Writing register",reg,"with value",val
 
 
@@ -421,10 +422,12 @@ def ft81x_construct_copro_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0
 
 def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0, arg6 = 0, arg7 = 0):     
     '''
-    
+    Writes RAM_CMD memory region
     
     Args:
-        
+        ch_instance     - SPI interface Handler obtained through "class Channel"
+        copro_cmd       - Coprocessor command as string
+        arg1 to arg7    - arguments for the coprocessor command in integres
         
     Return:
         None
@@ -433,15 +436,15 @@ def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0,
         ft81x_copro_cmd_bufwrite.buf_ptr = 0 
     if not hasattr(ft81x_copro_cmd_bufwrite,"buf"):
         ft81x_copro_cmd_bufwrite.buf =  []  
-    if not hasattr(ft81x_copro_cmd_bufwrite,"wr_ram_cmd_ptr"):
-        ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr =  ft81x_def.RAM_CMD  
+    #if not hasattr(ft81x_copro_cmd_bufwrite,"wr_ram_cmd_ptr"):
+        #ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr =  ft81x_def.RAM_CMD  
 
     if copro_cmd == 'UPDATE_RAM_CMD':
         # time to update RAM_CMD region        
         print "Buffer content being updated to RAM_CMD -> ",ft81x_copro_cmd_bufwrite.buf
-        ch_instance.wrstr(ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr,"".join(ele for ele in ft81x_copro_cmd_bufwrite.buf))        
-        #ft81x_reg_write(ch_instance,ft81x_def.REG_CMD_WRITE,ft81x_construct_fix_value_string(ft81x_copro_cmd_bufwrite.buf_ptr,2))
-        ch_instance.wrstr(ft81x_def.REG_CMD_WRITE,ft81x_construct_fix_value_string(ft81x_copro_cmd_bufwrite.buf_ptr,2))
+        #ch_instance.wrstr(ft81x_copro_cmd_bufwrite.wr_ram_cmd_ptr,"".join(ele for ele in ft81x_copro_cmd_bufwrite.buf))        
+        ch_instance.wrstr(ft81x_def.RAM_CMD,"".join(ele for ele in ft81x_copro_cmd_bufwrite.buf))        
+        ft81x_reg_write(ch_instance,ft81x_def.REG_CMD_WRITE,ft81x_copro_cmd_bufwrite.buf_ptr,2)        
         while(ft81x_ram_cmd_freespace(ch_instance) != 4092):
             print 'waiting.....' 
             continue
@@ -454,21 +457,24 @@ def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0,
             cmd_str = ft81x_construct_copro_command(copro_cmd,arg1,arg2,arg3,arg4,arg5,arg6,arg7)
         elif ft81x_is_dl_command(copro_cmd):        
             cmd_str = ft81x_construct_dl_command(copro_cmd,arg1,arg2,arg3,arg4)
-
+        else : 
+            print 'Neither coprocessor command nor dl command....'
+            return    
         #print "cmd_str",cmd_str
         cmd_len = len(cmd_str)       
         if (cmd_len):                   
             ft81x_copro_cmd_bufwrite.buf += list(cmd_str)
             pad_len = padding = 0
-            if cmd_len & 0x3 != 0 :
+            if (cmd_len % 4):
                 # not multiple of 4, padding needed
-                padding = 0x3 - (cmd_len & 0x3) + 1                            
-                pad_len = padding
+                padding = 4 - (cmd_len%4)
+                pad_len = padding            
                 while padding :
                     ft81x_copro_cmd_bufwrite.buf.append(chr(0))
                     padding -= 1            
             ft81x_copro_cmd_bufwrite.buf_ptr = ft81x_copro_cmd_bufwrite.buf_ptr + cmd_len + pad_len            
-
+        else :
+            print 'Command string empty'
 
 def check(f):
     if f != 0:
