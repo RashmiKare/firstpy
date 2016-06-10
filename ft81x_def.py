@@ -32,6 +32,16 @@ RAM_G               = 0x000000
 #constant definitions
 DLSWAP_FRAME        = 0x2
 
+BITMAPS             = 1
+POINTS              = 2
+LINES               = 3
+LINE_STRIP          = 4
+EDGE_STRIP_R        = 5 
+EDGE_STRIP_L        = 6 
+EDGE_STRIP_A        = 7 
+EDGE_STRIP_B        = 8
+RECTS               = 9 
+
 DL_COMMAND_LIST = (\
                         # DL drawing actions \
                         'BEGIN',\
@@ -65,6 +75,8 @@ DL_COMMAND_LIST = (\
                         'CELL',\
                         'BLEND_FUNC',\
                         'CLEAR_STENCIL',\
+                        'SCISSOR_XY',\
+                        'SCISSOR_SIZE',\
                     )
 
 COPRO_COMMAND_LIST = (\

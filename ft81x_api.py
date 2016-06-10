@@ -316,6 +316,14 @@ def ft81x_construct_dl_command(param1 = 0, param2 = 0, param3 = 0, param4 = 0, p
         elif param1 == 'CLEAR_STENCIL':
             # set clear value for stencil buffer
             cmd = (0x11 << 24) | ((param2 & 0xFF) << 3)
+        elif param1 == 'SCISSOR_XY':
+            # specify the top left corner of the scissor clip rectangle
+            cmd = (0x1B << 24) | ((param2 & 0x7FF) << 11) | (param3 & 0x7FF)
+            print cmd
+        elif param1 == 'SCISSOR_SIZE':
+            # specify the size of the scissor clip rectangle
+            cmd = (0x1C << 24) | ((param2 & 0xFFF) << 12) | (param3 & 0xFFF)
+            print cmd
 
         s = chr(cmd & 0xFF) + chr((cmd>>8) & 0xFF) + chr((cmd>>16) & 0xFF) + chr(((cmd>>24) & 0xFF))
         #print "\n cmd:"," ".join(hex(ord(n)) for n in s)
@@ -448,6 +456,7 @@ def ft81x_copro_cmd_bufwrite(ch_instance,copro_cmd,arg1 = 0, arg2 = 0, arg3 = 0,
         while(ft81x_ram_cmd_freespace(ch_instance) != 4092):
             print 'waiting.....' 
             continue
+        ft81x_copro_cmd_bufwrite.buf_ptr = 0
         return    
     if(ft81x_copro_cmd_bufwrite.buf_ptr > 4092):
         print 'BUF full , time to update RAM_CMD'
